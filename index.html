@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PUBG 专属灵敏度调试助手</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== Hero ===== -->
+  <header class="hero">
+    <div class="hero-badge"><span class="dot"></span>PUBG SENSITIVITY CALIBRATOR</div>
+    <h1>PUBG 专属灵敏度调试助手<span>AIM · TRACK · TURN</span></h1>
+    <p>通过三项鼠标测试，分析你的操作习惯，生成可在当前版本 PUBG 中直接使用的专属灵敏度配置</p>
+    <div class="hero-line"></div>
+  </header>
+
+  <!-- ===== DPI Bar ===== -->
+  <div class="dpi-bar">
+    <label>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="3" width="12" height="18" rx="6"/><line x1="12" y1="7" x2="12" y2="11"/></svg>
+      鼠标 DPI
+    </label>
+    <select class="dpi-select" id="dpiSelect">
+      <option value="400">400 DPI</option>
+      <option value="800" selected>800 DPI</option>
+      <option value="1600">1600 DPI</option>
+      <option value="3200">3200 DPI</option>
+      <option value="calib">📏 校准我的 DPI</option>
+    </select>
+    <button class="btn-calib" id="btnCalib">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:14px;height:14px"><path d="M3 3h7v7H3zM14 3h7v7h-7zM14 14h7v7h-7zM3 14h7v7H3z"/></svg>
+      校准
+    </button>
+    <span class="dpi-status unknown" id="dpiStatus">未校准 · 默认 800</span>
+  </div>
+
+  <!-- ===== Calibration Panel ===== -->
+  <div class="calib-panel" id="calibPanel">
+    <h3>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+      DPI 校准（不知道 DPI 也能测）
+    </h3>
+    <div class="calib-steps">
+      ① 在鼠标垫上用尺子量出一条 <b>10 厘米</b> 的线段，记下两端。<br>
+      ② 将鼠标放在线段<b>左端</b>，点击下方「开始测量」（光标会锁定在校准框内）。<br>
+      ③ 匀速把鼠标移到<b>右端</b>，框内进度条会随移动填充，实时 DPI 稳定后按 <b>ESC</b> 退出并采用。
+    </div>
+    <div class="calib-stage">
+      <div class="calib-canvas-wrap">
+        <canvas id="cv-calib"></canvas>
+        <div class="canvas-overlay" id="ov-calib">
+          <div class="hint-text">点击「开始测量」后，将鼠标从左移到右</div>
+        </div>
+        <div class="calib-track">
+          <div class="calib-track-fill" id="calibFill"></div>
+        </div>
+      </div>
+      <div class="calib-readout">
+        <div class="lbl">实时 DPI</div>
+        <div class="val" id="calibVal">--</div>
+        <div class="sub">移动像素: <span id="calibPx">0</span></div>
+      </div>
+    </div>
+    <div class="calib-actions">
+      <button class="btn-sm primary" id="btnCalibStart">开始测量</button>
+      <button class="btn-sm gold" id="btnCalibConfirm" disabled>采用此 DPI</button>
+      <button class="btn-sm" id="btnCalibRetry">重测</button>
+    </div>
+    <button class="btn-close" id="btnCalibClose">关闭校准面板</button>
+  </div>
+
+  <!-- ===== Global Start ===== -->
+  <div class="global-start">
+    <button class="btn-start-all" id="btnStartAll">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 3l14 9-14 9z"/></svg>
+      开始全部测试
+    </button>
+    <div class="seq-status" id="seqStatus">点击开始，将依次进行 3 项测试</div>
+  </div>
+
+  <!-- ===== Tests Grid ===== -->
+  <div class="tests-grid">
+
+    <!-- Test 1: Tracking -->
+    <div class="test-card" id="card-tracking">
+      <div class="test-step">1</div>
+      <div class="test-head">
+        <div class="test-tag t1">TEST 01 · TRACKING</div>
+        <h3>追踪测试</h3>
+        <p>跟随移动目标 · 测试追踪精准度（10秒）</p>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="cv-tracking"></canvas>
+        <div class="canvas-overlay" id="ov-tracking">
+          <div class="hint-icon">🎯</div>
+          <div class="hint-text">点击「开始测试」</div>
+          <div class="hint-sub">每项开始前有 3 秒倒计时</div>
+        </div>
+      </div>
+      <div class="test-foot">
+        <div class="test-result" id="res-tracking"><span class="pending">等待测试...</span></div>
+        <button class="btn-test" data-test="tracking">开始测试</button>
+      </div>
+    </div>
+
+    <!-- Test 2: Flick -->
+    <div class="test-card" id="card-flick">
+      <div class="test-step">2</div>
+      <div class="test-head">
+        <div class="test-tag t2">TEST 02 · FLICK</div>
+        <h3>定位测试</h3>
+        <p>快速瞄准随机目标 · 测试命中与反应（10秒）</p>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="cv-flick"></canvas>
+        <div class="canvas-overlay" id="ov-flick">
+          <div class="hint-icon">⚡</div>
+          <div class="hint-text">点击「开始测试」</div>
+          <div class="hint-sub">每项开始前有 3 秒倒计时</div>
+        </div>
+      </div>
+      <div class="test-foot">
+        <div class="test-result" id="res-flick"><span class="pending">等待测试...</span></div>
+        <button class="btn-test" data-test="flick">开始测试</button>
+      </div>
+    </div>
+
+    <!-- Test 3: 360 Turn -->
+    <div class="test-card" id="card-turn">
+      <div class="test-step">3</div>
+      <div class="test-head">
+        <div class="test-tag t3">TEST 03 · 360° TURN</div>
+        <h3>360° 转身测试</h3>
+        <p>左右移动鼠标 · 测算实际转身距离（10秒）</p>
+      </div>
+      <div class="canvas-wrap">
+        <canvas id="cv-turn"></canvas>
+        <div class="canvas-overlay" id="ov-turn">
+          <div class="hint-icon">🔄</div>
+          <div class="hint-text">点击「开始测试」</div>
+          <div class="hint-sub">每项开始前有 3 秒倒计时</div>
+        </div>
+      </div>
+      <div class="test-foot">
+        <div class="test-result" id="res-turn"><span class="pending">等待测试...</span></div>
+        <button class="btn-test" data-test="turn">开始测试</button>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- ===== Generate ===== -->
+  <div class="gen-section">
+    <button class="btn-generate" id="btnGen" disabled>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 2L13.5 8.5L20 10L13.5 11.5L12 18L10.5 11.5L4 10L10.5 8.5Z"/></svg>
+      生成专属灵敏度
+    </button>
+    <div class="gen-status" id="genStatus">完成全部 3 项测试后可生成灵敏度配置</div>
+  </div>
+
+  <!-- ===== Results ===== -->
+  <div class="results-section" id="resultsSection">
+    <h2>你的专属 <span>PUBG</span> 灵敏度配置</h2>
+    <p class="results-sub">以下数值可直接在 PUBG 设置 → 鼠标灵敏度中填入使用</p>
+
+    <div class="playstyle-box" id="playstyleBox">
+      <div class="label">操作风格分析</div>
+      <div class="name" id="playstyleName">--</div>
+      <div class="desc" id="playstyleDesc"></div>
+    </div>
+
+    <div class="sens-grid" id="sensGrid"></div>
+
+    <div class="cm360-box">
+      <div class="label">预估 cm/360（转一圈所需鼠标移动距离）</div>
+      <div class="val" id="cm360Val">--</div>
+      <div class="desc" id="cm360Desc"></div>
+    </div>
+
+    <div class="perf-section">
+      <h3>性能分析</h3>
+      <div class="perf-row">
+        <div class="perf-label">追踪精准度</div>
+        <div class="perf-bar-bg"><div class="perf-bar-fill cyan" id="bar-track"></div></div>
+        <div class="perf-val" id="val-track">--</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">定位速度</div>
+        <div class="perf-bar-bg"><div class="perf-bar-fill gold" id="bar-flick"></div></div>
+        <div class="perf-val" id="val-flick">--</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">操作幅度</div>
+        <div class="perf-bar-bg"><div class="perf-bar-fill purple" id="bar-turn"></div></div>
+        <div class="perf-val" id="val-turn">--</div>
+      </div>
+      <div class="perf-row">
+        <div class="perf-label">综合评分</div>
+        <div class="perf-bar-bg"><div class="perf-bar-fill green" id="bar-overall"></div></div>
+        <div class="perf-val" id="val-overall">--</div>
+      </div>
+    </div>
+
+    <div class="suggestions">
+      <h3>
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4M12 8h.01"/></svg>
+        微调提升建议
+      </h3>
+      <ul class="sug-list" id="sugList"></ul>
+    </div>
+
+    <div class="copy-all-section">
+      <button class="btn-copy-all" id="btnCopyAll">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:16px;height:16px"><rect x="9" y="9" width="13" height="13" rx="2"/><path d="M5 15H4a2 2 0 01-2-2V4a2 2 0 012-2h9a2 2 0 012 2v1"/></svg>
+        复制全部灵敏度配置
+      </button>
+    </div>
+  </div>
+
+  <div class="footer">
+    <p>灵敏度数值基于当前版本 PUBG 设置范围 · 建议在训练场中逐步微调验证</p>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
